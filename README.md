@@ -8,10 +8,11 @@ Monitor and update Linux/unix hosts from Home Assistant over SSH. Nothing needs 
   - **OS version**, read from `/etc/os-release`.
   - **Updates available**: the count of pending updates, with the package names in a `packages` attribute (capped at 50).
   - **IP address** (diagnostic).
+  - **Hardware**: CPU usage, CPU temperature, memory usage, disk usage and free space (root filesystem), and last boot time. Memory used, swap usage and 1/5/15-minute load averages are available but disabled by default. These poll every 60 seconds, separately from the update check, and keep reporting while an upgrade runs. A sensor the host can't report (for example temperature on a VM with no thermal zone) is not created.
 - **Device info**: manufacturer, model, OS version (shown as the device's software version), architecture (hardware version) and MAC address. Hardware details come from firmware data on x86 and VMs, or the device tree on Raspberry Pi and other ARM boards.
 - **Buttons**: **Update repositories** and **Update OS**. Sensors refresh after either one runs.
 - **Package managers**: apt, dnf, yum, apk, pacman (via `checkupdates` from `pacman-contrib`) and zypper, auto-detected.
-- **Options**: update check interval (default 60 minutes, 5 to 1440).
+- **Options**: update check interval (default 60 minutes, 5 to 1440) and hardware sensor interval (default 60 seconds, 10 to 3600).
 
 ## Installation
 
@@ -91,7 +92,8 @@ Use an IP or CIDR range, not a hostname. If logins start failing, check `journal
 - **Host keys are pinned.** The key confirmed at setup is the only one accepted. If it changes (for example after reinstalling the OS), the integration stops connecting and Home Assistant asks you to re-authenticate, showing the new fingerprint to accept. Entries created before v0.3.0 pin the key they see on their first connection after the upgrade and log its fingerprint.
 - `NOPASSWD: ALL` is powerful, and the apt upgrade runs through `env`, so a narrower sudoers rule is not much safer in practice. Protect the account and key accordingly.
 - No passphrase-protected keys and no reauthentication flow yet.
-- macOS and the BSDs are not supported.
+- macOS and the BSDs are not supported. Hardware sensors read `/proc` and `/sys`, so they are Linux-only as well.
+- Each hardware poll opens a new SSH connection, which shows up in the host's auth log once per interval.
 
 ## Roadmap
 

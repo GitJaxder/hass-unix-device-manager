@@ -17,6 +17,7 @@ from .discovery import (
     parse_facts,
     pick_interface,
 )
+from .stats import CPU_CMD, STATS_CMD, UnixStats, parse_stats
 
 CONNECT_TIMEOUT = 15
 QUERY_TIMEOUT = 300
@@ -212,6 +213,7 @@ class UnixClient:
         self.host_key = host_key
         self._lock = asyncio.Lock()  # one operation at a time per host
         self._pm: PackageManager | None = None
+        self._cpu_sample: tuple[int, int] | None = None  # from the last stats poll
 
     def _render(self, template: str) -> str:
         return template.replace("{sudo}", "" if self._username == "root" else "sudo -n ")
@@ -324,3 +326,18 @@ class UnixClient:
             await self._run(
                 conn, _detached(self._render(pm.upgrade_cmd)), timeout=UPGRADE_TIMEOUT
             )
+
+    async def async_stats(self) -> UnixStats:
+        """Read CPU, memory, disk and temperature figures.
+
+        Deliberately skips the lock: it is a cheap read that should keep
+        reporting while a long upgrade holds the host.
+        """
+        script = STATS_CMD
+        if self._cpu_sample is None:  # first poll: measure CPU over one second
+            script = f"{CPU_CMD}sleep 1\n{STATS_CMD}"
+        async with self._connect() as conn:
+            out = await self._run(conn, script)
+        stats = parse_stats(out, self._cpu_sample)
+        self._cpu_sample = stats.cpu_sample
+        return stats
