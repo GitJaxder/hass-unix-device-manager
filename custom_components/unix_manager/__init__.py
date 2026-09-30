@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
 
 from .client import UnixClient, load_key
-from .const import CONF_KEY_FILE
+from .const import CONF_HOST_KEY, CONF_KEY_FILE
 from .coordinator import UnixConfigEntry, UnixCoordinator
 
 PLATFORMS = [Platform.SENSOR, Platform.BUTTON]
@@ -28,6 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: UnixConfigEntry) -> bool
         entry.data[CONF_USERNAME],
         entry.data.get(CONF_PASSWORD),
         key,
+        entry.data.get(CONF_HOST_KEY),
     )
     coordinator = UnixCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
