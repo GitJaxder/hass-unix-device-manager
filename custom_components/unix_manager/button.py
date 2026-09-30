@@ -14,6 +14,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .client import UnixClient, UnixError
+from .const import OP_NAMES, OP_REFRESH, OP_UPGRADE
 from .coordinator import UnixConfigEntry, UnixCoordinator
 from .entity import UnixEntity
 
@@ -25,14 +26,14 @@ class UnixButtonDescription(ButtonEntityDescription):
 
 BUTTONS = (
     UnixButtonDescription(
-        key="refresh_repositories",
-        translation_key="refresh_repositories",
+        key=OP_REFRESH,
+        translation_key=OP_REFRESH,
         icon="mdi:database-refresh",
         press_fn=lambda c: c.async_refresh_repositories(),
     ),
     UnixButtonDescription(
-        key="upgrade_os",
-        translation_key="upgrade_os",
+        key=OP_UPGRADE,
+        translation_key=OP_UPGRADE,
         device_class=ButtonDeviceClass.UPDATE,
         press_fn=lambda c: c.async_upgrade(),
     ),
@@ -55,10 +56,11 @@ class UnixButton(UnixEntity, ButtonEntity):
         self.entity_description = description
 
     async def async_press(self) -> None:
-        try:
-            await self.entity_description.press_fn(self.coordinator.client)
-        except UnixError as err:
-            raise HomeAssistantError(
-                f"{self.entity_description.key} failed on {self.coordinator.config_entry.title}: {err}"
-            ) from err
-        await self.coordinator.async_request_refresh()
+        key = self.entity_description.key
+        async with self.coordinator.async_operation(key):
+            try:
+                await self.entity_description.press_fn(self.coordinator.client)
+            except UnixError as err:
+                raise HomeAssistantError(
+                    f"{OP_NAMES[key]} failed on {self.coordinator.config_entry.title}: {err}"
+                ) from err
