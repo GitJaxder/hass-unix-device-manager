@@ -11,6 +11,14 @@
           "password": "Password",
           "key_file": "Private key file path"
         }
+      },
+      "host_key": {
+        "title": "Confirm the host key",
+        "description": "{host} identifies itself with this SSH host key:\n\n`{fingerprint}`\n\nTo check it, run `ssh-keygen -lf {key_file}` on the host. Submit only if the fingerprints match. From now on the integration will refuse to connect if the key changes."
+      },
+      "reauth_confirm": {
+        "title": "Host key changed",
+        "description": "{host} now presents a different SSH host key:\n\n`{fingerprint}`\n\nThis is expected after reinstalling the OS or regenerating host keys. Otherwise, another machine may be answering on this address. Check the key with `ssh-keygen -lf {key_file}` on the host and submit only if it matches."
       }
     },
     "error": {
@@ -19,10 +27,12 @@
       "invalid_key": "Could not read the private key (missing, or passphrase-protected)",
       "no_credentials": "Provide a password or a key file",
       "unsupported": "No supported package manager found (apt, dnf, yum, apk, pacman with pacman-contrib, zypper)",
-      "unknown": "Unexpected error, see the log"
+      "unknown": "Unexpected error, see the log",
+      "host_key_changed": "The host key changed during setup; try again"
     },
     "abort": {
-      "already_configured": "This host is already configured"
+      "already_configured": "This host is already configured",
+      "reauth_successful": "The new host key was accepted"
     }
   },
   "options": {
