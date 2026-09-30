@@ -9,7 +9,7 @@ from homeassistant.exceptions import ConfigEntryError
 
 from .client import UnixClient, load_key
 from .const import CONF_HOST_KEY, CONF_KEY_FILE
-from .coordinator import UnixConfigEntry, UnixCoordinator
+from .coordinator import UnixConfigEntry, UnixCoordinator, UnixStatsCoordinator
 
 PLATFORMS = [Platform.SENSOR, Platform.BUTTON, Platform.UPDATE]
 
@@ -32,6 +32,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: UnixConfigEntry) -> bool
     )
     coordinator = UnixCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
+    coordinator.stats = UnixStatsCoordinator(hass, entry, client)
+    await coordinator.stats.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

@@ -16,11 +16,14 @@ from .client import HostKeyMismatch, UnixClient, UnixData, UnixError, fingerprin
 from .const import (
     CONF_HOST_KEY,
     CONF_INTERVAL,
+    CONF_STATS_INTERVAL,
     DEFAULT_INTERVAL,
+    DEFAULT_STATS_INTERVAL,
     DOMAIN,
     OP_NAMES,
     OP_UPGRADE,
 )
+from .stats import UnixStats
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +34,7 @@ class UnixCoordinator(DataUpdateCoordinator[UnixData]):
     """Polls OS version and pending updates."""
 
     config_entry: UnixConfigEntry
+    stats: UnixStatsCoordinator  # hardware sensors, polled more often
 
     def __init__(
         self, hass: HomeAssistant, entry: UnixConfigEntry, client: UnixClient
@@ -110,3 +114,30 @@ class UnixCoordinator(DataUpdateCoordinator[UnixData]):
             registry.async_update_device(
                 device.id, sw_version=data.os_version, hw_version=data.architecture
             )
+
+
+class UnixStatsCoordinator(DataUpdateCoordinator[UnixStats]):
+    """Polls CPU, memory, disk and temperature on a short interval."""
+
+    config_entry: UnixConfigEntry
+
+    def __init__(
+        self, hass: HomeAssistant, entry: UnixConfigEntry, client: UnixClient
+    ) -> None:
+        seconds = entry.options.get(CONF_STATS_INTERVAL, DEFAULT_STATS_INTERVAL)
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=entry,
+            name=f"{DOMAIN} {entry.title} stats",
+            update_interval=timedelta(seconds=seconds),
+        )
+        self.client = client
+
+    async def _async_update_data(self) -> UnixStats:
+        try:
+            return await self.client.async_stats()
+        except HostKeyMismatch as err:
+            raise ConfigEntryAuthFailed(f"host key changed: {err}") from err
+        except UnixError as err:
+            raise UpdateFailed(str(err)) from err

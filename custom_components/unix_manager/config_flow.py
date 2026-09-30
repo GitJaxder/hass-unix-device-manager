@@ -22,7 +22,15 @@ from .client import (
     fingerprint,
     load_key,
 )
-from .const import CONF_HOST_KEY, CONF_INTERVAL, CONF_KEY_FILE, DEFAULT_INTERVAL, DOMAIN
+from .const import (
+    CONF_HOST_KEY,
+    CONF_INTERVAL,
+    CONF_KEY_FILE,
+    CONF_STATS_INTERVAL,
+    DEFAULT_INTERVAL,
+    DEFAULT_STATS_INTERVAL,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -218,14 +226,19 @@ class UnixOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(data=user_input)
-        current = self.config_entry.options.get(CONF_INTERVAL, DEFAULT_INTERVAL)
+        options = self.config_entry.options
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_INTERVAL, default=current): vol.All(
-                        vol.Coerce(int), vol.Range(min=5, max=1440)
-                    )
+                    vol.Required(
+                        CONF_INTERVAL,
+                        default=options.get(CONF_INTERVAL, DEFAULT_INTERVAL),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=5, max=1440)),
+                    vol.Required(
+                        CONF_STATS_INTERVAL,
+                        default=options.get(CONF_STATS_INTERVAL, DEFAULT_STATS_INTERVAL),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
                 }
             ),
         )

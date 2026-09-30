@@ -39,7 +39,8 @@
     "step": {
       "init": {
         "data": {
-          "check_interval": "Update check interval (minutes)"
+          "check_interval": "Update check interval (minutes)",
+          "stats_interval": "Hardware sensor interval (seconds)"
         }
       }
     }
@@ -48,7 +49,18 @@
     "sensor": {
       "os_version": { "name": "OS version" },
       "updates_available": { "name": "Updates available" },
-      "ip_address": { "name": "IP address" }
+      "ip_address": { "name": "IP address" },
+      "cpu_usage": { "name": "CPU usage" },
+      "cpu_temperature": { "name": "CPU temperature" },
+      "memory_usage": { "name": "Memory usage" },
+      "memory_used": { "name": "Memory used" },
+      "swap_usage": { "name": "Swap usage" },
+      "disk_usage": { "name": "Disk usage" },
+      "disk_free": { "name": "Disk free" },
+      "load_1m": { "name": "Load (1 min)" },
+      "load_5m": { "name": "Load (5 min)" },
+      "load_15m": { "name": "Load (15 min)" },
+      "last_boot": { "name": "Last boot" }
     },
     "button": {
       "refresh_repositories": { "name": "Update repositories" },
