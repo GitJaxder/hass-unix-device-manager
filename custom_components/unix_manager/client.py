@@ -69,7 +69,8 @@ def _parse_dnf(out: str) -> list[str]:
 
 
 def _parse_apk(out: str) -> list[str]:
-    return [l.split()[0] for l in out.splitlines() if " < " in l]
+    # "py3-foo-1.2-r0 < 1.3-r0": drop the trailing "-<version>-r<rel>".
+    return [l.split()[0].rsplit("-", 2)[0] for l in out.splitlines() if " < " in l]
 
 
 def _parse_pacman(out: str) -> list[str]:
