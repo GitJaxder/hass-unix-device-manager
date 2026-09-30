@@ -1,12 +1,14 @@
 """Data update coordinator."""
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -18,6 +20,8 @@ from .const import (
     DEFAULT_INTERVAL,
     DEFAULT_STATS_INTERVAL,
     DOMAIN,
+    OP_NAMES,
+    OP_UPGRADE,
 )
 from .stats import UnixStats
 
@@ -44,6 +48,34 @@ class UnixCoordinator(DataUpdateCoordinator[UnixData]):
             update_interval=timedelta(minutes=minutes),
         )
         self.client = client
+        # Key of the button/update action running on the host, if any.
+        self.operation: str | None = None
+
+    @property
+    def upgrading(self) -> bool:
+        return self.operation == OP_UPGRADE
+
+    @asynccontextmanager
+    async def async_operation(self, key: str) -> AsyncIterator[None]:
+        """Mark a refresh or upgrade as running, rejecting overlapping ones.
+
+        Entities are told when it starts and ends so the UI can show it. The
+        data is re-polled before it ends, so an update entity doesn't flash
+        "update available" between the upgrade finishing and the next poll.
+        """
+        if self.operation is not None:
+            raise HomeAssistantError(
+                f"{OP_NAMES[self.operation]} is already running on "
+                f"{self.config_entry.title}; wait for it to finish"
+            )
+        self.operation = key
+        self.async_update_listeners()
+        try:
+            yield
+            await self.async_refresh()
+        finally:
+            self.operation = None
+            self.async_update_listeners()
 
     async def _async_update_data(self) -> UnixData:
         try:

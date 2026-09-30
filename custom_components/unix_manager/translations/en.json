@@ -65,6 +65,9 @@
     "button": {
       "refresh_repositories": { "name": "Update repositories" },
       "upgrade_os": { "name": "Update OS" }
+    },
+    "update": {
+      "os_updates": { "name": "OS updates" }
     }
   }
 }

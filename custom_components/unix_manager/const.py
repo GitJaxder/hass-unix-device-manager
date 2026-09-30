@@ -9,3 +9,8 @@ DEFAULT_INTERVAL = 60
 CONF_STATS_INTERVAL = "stats_interval"  # seconds, hardware sensors
 DEFAULT_STATS_INTERVAL = 60
 MAX_LISTED_PACKAGES = 50  # keep state attributes small
+
+# Long-running operations, also the button keys.
+OP_REFRESH = "refresh_repositories"
+OP_UPGRADE = "upgrade_os"
+OP_NAMES = {OP_REFRESH: "Update repositories", OP_UPGRADE: "Update OS"}

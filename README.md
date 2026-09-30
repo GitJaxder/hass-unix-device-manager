@@ -10,7 +10,8 @@ Monitor and update Linux/unix hosts from Home Assistant over SSH. Nothing needs 
   - **IP address** (diagnostic).
   - **Hardware**: CPU usage, CPU temperature, memory usage, disk usage and free space (root filesystem), and last boot time. Memory used, swap usage and 1/5/15-minute load averages are available but disabled by default. These poll every 60 seconds, separately from the update check, and keep reporting while an upgrade runs. A sensor the host can't report (for example temperature on a VM with no thermal zone) is not created.
 - **Device info**: manufacturer, model, OS version (shown as the device's software version), architecture (hardware version) and MAC address. Hardware details come from firmware data on x86 and VMs, or the device tree on Raspberry Pi and other ARM boards.
-- **Buttons**: **Update repositories** and **Update OS**. Sensors refresh after either one runs.
+- **OS updates** (update entity): shows as available in **Settings → Updates** when packages are pending, lists them in the release notes, and installs them with a progress spinner while the upgrade runs.
+- **Buttons**: **Update repositories** and **Update OS**. Sensors refresh after either one runs. While one is running, pressing either button again (or installing from the update entity) is refused with a message instead of queueing another run, and an OS upgrade started from the button also shows as in progress on the update entity.
 - **Package managers**: apt, dnf, yum, apk, pacman (via `checkupdates` from `pacman-contrib`) and zypper, auto-detected.
 - **Options**: update check interval (default 60 minutes, 5 to 1440) and hardware sensor interval (default 60 seconds, 10 to 3600).
 
@@ -87,7 +88,7 @@ Use an IP or CIDR range, not a hostname. If logins start failing, check `journal
 
 ## Notes and limitations
 
-- **Update OS** runs the normal package upgrade (for example `apt-get upgrade`), not a distribution release upgrade. The button waits for it to finish, up to an hour, and reports failures in the UI.
+- **Update OS** (the button or the update entity) runs the normal package upgrade (for example `apt-get upgrade`), not a distribution release upgrade. The button waits for it to finish, up to an hour, and reports failures in the UI.
 - Refresh and upgrade commands run under `nohup`, so a dropped SSH connection cannot kill a package manager mid-transaction. Only one operation runs per host at a time.
 - **Host keys are pinned.** The key confirmed at setup is the only one accepted. If it changes (for example after reinstalling the OS), the integration stops connecting and Home Assistant asks you to re-authenticate, showing the new fingerprint to accept. Entries created before v0.3.0 pin the key they see on their first connection after the upgrade and log its fingerprint.
 - `NOPASSWD: ALL` is powerful, and the apt upgrade runs through `env`, so a narrower sudoers rule is not much safer in practice. Protect the account and key accordingly.
@@ -97,7 +98,6 @@ Use an IP or CIDR range, not a hostname. If logins start failing, check `journal
 
 ## Roadmap
 
-- A native `update` entity
 - A reboot-required sensor
 - More platforms (FreeBSD `pkg`, macOS `softwareupdate`)
 
