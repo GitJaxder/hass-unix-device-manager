@@ -51,6 +51,10 @@ class CommandFailed(UnixError):
     """Remote command failed."""
 
 
+class HostKeyMismatch(UnixError):
+    """The host presented a different key than the one pinned at setup."""
+
+
 # --- package manager definitions -------------------------------------------------
 
 def _parse_apt(out: str) -> list[str]:
@@ -155,6 +159,29 @@ def load_key(path: str) -> asyncssh.SSHKey:
     return asyncssh.read_private_key(path)
 
 
+def export_host_key(key: asyncssh.SSHKey) -> str:
+    """Serialize a host key for storage in the config entry."""
+    return key.export_public_key().decode().strip()
+
+
+def fingerprint(host_key: str) -> str:
+    """Human-readable form, e.g. 'ssh-ed25519 SHA256:...'."""
+    key = asyncssh.import_public_key(host_key)
+    return f"{key.get_algorithm()} {key.get_fingerprint()}"
+
+
+async def fetch_host_key(host: str, port: int) -> str:
+    """Read the server's host key without authenticating."""
+    try:
+        async with asyncio.timeout(CONNECT_TIMEOUT):
+            key = await asyncssh.get_server_host_key(host, port, config=None)
+    except (OSError, asyncssh.Error, TimeoutError) as err:
+        raise CannotConnect(str(err)) from err
+    if key is None:
+        raise CannotConnect("server did not present a host key")
+    return export_host_key(key)
+
+
 def _detached(cmd: str) -> str:
     """Run under nohup with output to a temp file so a dropped SSH session
     can't kill a package manager half-way through a transaction."""
@@ -174,12 +201,15 @@ class UnixClient:
         username: str,
         password: str | None,
         client_key: asyncssh.SSHKey | None,
+        host_key: str | None = None,
     ) -> None:
         self._host = host
         self._port = port
         self._username = username
         self._password = password
         self._key = client_key
+        # Pinned host key; None means trust the first key seen and pin it.
+        self.host_key = host_key
         self._lock = asyncio.Lock()  # one operation at a time per host
         self._pm: PackageManager | None = None
 
@@ -188,6 +218,11 @@ class UnixClient:
 
     @asynccontextmanager
     async def _connect(self):
+        known_hosts = (
+            ([asyncssh.import_public_key(self.host_key)], [], [])
+            if self.host_key
+            else None
+        )
         try:
             async with asyncssh.connect(
                 self._host,
@@ -195,11 +230,15 @@ class UnixClient:
                 username=self._username,
                 password=self._password,
                 client_keys=[self._key] if self._key else None,
-                known_hosts=None,  # TODO: host-key pinning
+                known_hosts=known_hosts,
                 config=None,
                 connect_timeout=CONNECT_TIMEOUT,
             ) as conn:
+                if self.host_key is None and (key := conn.get_server_host_key()):
+                    self.host_key = export_host_key(key)
                 yield conn
+        except asyncssh.HostKeyNotVerifiable as err:
+            raise HostKeyMismatch(str(err)) from err
         except asyncssh.PermissionDenied as err:
             raise InvalidAuth(str(err)) from err
         except (OSError, asyncssh.Error, asyncio.TimeoutError) as err:
