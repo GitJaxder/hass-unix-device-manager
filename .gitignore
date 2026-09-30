@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Build output
+*.zip
+
+# Safety net: never commit SSH keys or secrets
+hass_mgr*
+id_ed25519*
+id_rsa*
+*.pem

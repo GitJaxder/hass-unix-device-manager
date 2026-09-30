@@ -1,0 +1,12 @@
+{
+  "domain": "unix_manager",
+  "name": "Unix Device Manager",
+  "codeowners": ["@GitJaxder"],
+  "config_flow": true,
+  "documentation": "https://github.com/GitJaxder/hass-unix-device-manager",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/GitJaxder/hass-unix-device-manager/issues",
+  "requirements": ["asyncssh>=2.14.0"],
+  "version": "0.2.1"
+}
