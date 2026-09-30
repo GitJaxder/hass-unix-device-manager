@@ -88,7 +88,7 @@ Use an IP or CIDR range, not a hostname. If logins start failing, check `journal
 
 ## Notes and limitations
 
-- **Update OS** (the button or the update entity) runs the normal package upgrade (for example `apt-get upgrade`), not a distribution release upgrade. The button waits for it to finish, up to an hour, and reports failures in the UI.
+- **Update OS** (the button or the update entity) upgrades every pending package in one run (for example `apt-get upgrade --with-new-pkgs`), not a distribution release upgrade. On apt systems, upgrades that need a new dependency (such as a new kernel) are included, packages are never removed, and the **Updates available** count only includes what the upgrade will actually install, so Ubuntu phased updates that apt is still holding back aren't counted. The button waits for it to finish, up to an hour, and reports failures in the UI.
 - Refresh and upgrade commands run under `nohup`, so a dropped SSH connection cannot kill a package manager mid-transaction. Only one operation runs per host at a time.
 - **Host keys are pinned.** The key confirmed at setup is the only one accepted. If it changes (for example after reinstalling the OS), the integration stops connecting and Home Assistant asks you to re-authenticate, showing the new fingerprint to accept. Entries created before v0.3.0 pin the key they see on their first connection after the upgrade and log its fingerprint.
 - `NOPASSWD: ALL` is powerful, and the apt upgrade runs through `env`, so a narrower sudoers rule is not much safer in practice. Protect the account and key accordingly.

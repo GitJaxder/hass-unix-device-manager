@@ -59,7 +59,14 @@ class HostKeyMismatch(UnixError):
 # --- package manager definitions -------------------------------------------------
 
 def _parse_apt(out: str) -> list[str]:
-    return [l.split("/", 1)[0] for l in out.splitlines() if "/" in l and "[upgradable" in l]
+    # Simulated upgrade: "Inst pkg [old-version] (new-version ...)". Lines
+    # without "[" install a new dependency rather than upgrade a package.
+    return [
+        parts[1]
+        for l in out.splitlines()
+        if (parts := l.split()) and parts[0] == "Inst" and len(parts) > 2
+        and parts[2].startswith("[")
+    ]
 
 
 def _parse_dnf(out: str) -> list[str]:
@@ -108,11 +115,17 @@ class PackageManager:
 PACKAGE_MANAGERS: dict[str, PackageManager] = {
     "apt-get": PackageManager(
         "apt",
-        "apt list --upgradable 2>/dev/null",
+        # List what the upgrade below would actually install, so packages apt
+        # holds back (e.g. Ubuntu phased updates) aren't counted as pending.
+        "apt-get -s -q upgrade --with-new-pkgs 2>/dev/null",
         _parse_apt,
         "{sudo}apt-get -q update",
+        # --with-new-pkgs, like `apt upgrade`: also take upgrades that need a
+        # new dependency (kernels, mesa, ...) instead of keeping them back.
+        # Still never removes packages.
         "{sudo}env DEBIAN_FRONTEND=noninteractive apt-get -y -q "
-        "-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade",
+        "-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "
+        "upgrade --with-new-pkgs",
     ),
     "dnf": PackageManager(
         "dnf", "dnf -q check-update", _parse_dnf,
