@@ -96,6 +96,7 @@ class PackageManager:
     upgrade_cmd: str
     list_ok: tuple[int, ...] = (0,)
     refresh_ok: tuple[int, ...] = (0,)
+    requires: tuple[str, ...] = ()  # extra binaries that must be installed
 
 
 PACKAGE_MANAGERS: dict[str, PackageManager] = {
@@ -124,7 +125,7 @@ PACKAGE_MANAGERS: dict[str, PackageManager] = {
     "pacman": PackageManager(
         "pacman", "checkupdates", _parse_pacman,
         "checkupdates", "{sudo}pacman -Syu --noconfirm",
-        list_ok=(0, 2), refresh_ok=(0, 2),
+        list_ok=(0, 2), refresh_ok=(0, 2), requires=("checkupdates",),
     ),
     "zypper": PackageManager(
         "zypper", "zypper --non-interactive -q list-updates", _parse_zypper,
@@ -227,7 +228,12 @@ class UnixClient:
             found = (await self._run(conn, DETECT_CMD)).strip()
             if found not in PACKAGE_MANAGERS:
                 raise UnsupportedSystem("no supported package manager found")
-            self._pm = PACKAGE_MANAGERS[found]
+            pm = PACKAGE_MANAGERS[found]
+            for binary in pm.requires:
+                check = f"command -v {shlex.quote(binary)} >/dev/null 2>&1; echo $?"
+                if (await self._run(conn, check)).strip() != "0":
+                    raise UnsupportedSystem(f"{pm.name} found but {binary} is missing")
+            self._pm = pm
         return self._pm
 
     async def _identity(self, conn) -> dict[str, str | None]:

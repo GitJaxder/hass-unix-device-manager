@@ -18,7 +18,7 @@
       "invalid_auth": "Authentication failed",
       "invalid_key": "Could not read the private key (missing, or passphrase-protected)",
       "no_credentials": "Provide a password or a key file",
-      "unsupported": "No supported package manager found (apt, dnf, yum, apk, pacman, zypper)",
+      "unsupported": "No supported package manager found (apt, dnf, yum, apk, pacman with pacman-contrib, zypper)",
       "unknown": "Unexpected error, see the log"
     },
     "abort": {
