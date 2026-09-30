@@ -19,7 +19,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: UnixConfigEntry) -> bool
     if key_file := entry.data.get(CONF_KEY_FILE):
         try:
             key = await hass.async_add_executor_job(load_key, key_file)
-        except (OSError, asyncssh.Error) as err:
+        except (OSError, ValueError, asyncssh.Error) as err:
             raise ConfigEntryError(f"Cannot load SSH key {key_file}: {err}") from err
 
     client = UnixClient(

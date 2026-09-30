@@ -69,7 +69,8 @@ def _parse_dnf(out: str) -> list[str]:
 
 
 def _parse_apk(out: str) -> list[str]:
-    return [l.split()[0] for l in out.splitlines() if " < " in l]
+    # "py3-foo-1.2-r0 < 1.3-r0": drop the trailing "-<version>-r<rel>".
+    return [l.split()[0].rsplit("-", 2)[0] for l in out.splitlines() if " < " in l]
 
 
 def _parse_pacman(out: str) -> list[str]:
@@ -96,6 +97,7 @@ class PackageManager:
     upgrade_cmd: str
     list_ok: tuple[int, ...] = (0,)
     refresh_ok: tuple[int, ...] = (0,)
+    requires: tuple[str, ...] = ()  # extra binaries that must be installed
 
 
 PACKAGE_MANAGERS: dict[str, PackageManager] = {
@@ -105,7 +107,7 @@ PACKAGE_MANAGERS: dict[str, PackageManager] = {
         _parse_apt,
         "{sudo}apt-get -q update",
         "{sudo}env DEBIAN_FRONTEND=noninteractive apt-get -y -q "
-        "-o Dpkg::Options::=--force-confold upgrade",
+        "-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade",
     ),
     "dnf": PackageManager(
         "dnf", "dnf -q check-update", _parse_dnf,
@@ -124,7 +126,7 @@ PACKAGE_MANAGERS: dict[str, PackageManager] = {
     "pacman": PackageManager(
         "pacman", "checkupdates", _parse_pacman,
         "checkupdates", "{sudo}pacman -Syu --noconfirm",
-        list_ok=(0, 2), refresh_ok=(0, 2),
+        list_ok=(0, 2), refresh_ok=(0, 2), requires=("checkupdates",),
     ),
     "zypper": PackageManager(
         "zypper", "zypper --non-interactive -q list-updates", _parse_zypper,
@@ -227,7 +229,12 @@ class UnixClient:
             found = (await self._run(conn, DETECT_CMD)).strip()
             if found not in PACKAGE_MANAGERS:
                 raise UnsupportedSystem("no supported package manager found")
-            self._pm = PACKAGE_MANAGERS[found]
+            pm = PACKAGE_MANAGERS[found]
+            for binary in pm.requires:
+                check = f"command -v {shlex.quote(binary)} >/dev/null 2>&1; echo $?"
+                if (await self._run(conn, check)).strip() != "0":
+                    raise UnsupportedSystem(f"{pm.name} found but {binary} is missing")
+            self._pm = pm
         return self._pm
 
     async def _identity(self, conn) -> dict[str, str | None]:
