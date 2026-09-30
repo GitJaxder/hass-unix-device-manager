@@ -105,7 +105,7 @@ PACKAGE_MANAGERS: dict[str, PackageManager] = {
         _parse_apt,
         "{sudo}apt-get -q update",
         "{sudo}env DEBIAN_FRONTEND=noninteractive apt-get -y -q "
-        "-o Dpkg::Options::=--force-confold upgrade",
+        "-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade",
     ),
     "dnf": PackageManager(
         "dnf", "dnf -q check-update", _parse_dnf,
