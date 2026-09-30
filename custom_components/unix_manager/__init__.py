@@ -11,7 +11,7 @@ from .client import UnixClient, load_key
 from .const import CONF_HOST_KEY, CONF_KEY_FILE
 from .coordinator import UnixConfigEntry, UnixCoordinator
 
-PLATFORMS = [Platform.SENSOR, Platform.BUTTON]
+PLATFORMS = [Platform.SENSOR, Platform.BUTTON, Platform.UPDATE]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: UnixConfigEntry) -> bool:
