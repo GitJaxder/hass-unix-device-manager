@@ -72,6 +72,8 @@ ssh -i /config/ssh/hass_mgr hass-mgr@<host> 'sudo -n true && echo ok'
 
 In the integration's setup form, enter the host, port, username, and the key file path (for example `/config/ssh/hass_mgr`). A password can be used instead, or as well.
 
+The next step shows the host's SSH key fingerprint. Compare it with the output of `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the device (the form names the right file for the key type) before submitting. No credentials are sent until you confirm.
+
 ### Optional: restrict the key
 
 Prefix the key's line in `authorized_keys` so it only works from your Home Assistant machine:
@@ -86,7 +88,7 @@ Use an IP or CIDR range, not a hostname. If logins start failing, check `journal
 
 - **Update OS** runs the normal package upgrade (for example `apt-get upgrade`), not a distribution release upgrade. The button waits for it to finish, up to an hour, and reports failures in the UI.
 - Refresh and upgrade commands run under `nohup`, so a dropped SSH connection cannot kill a package manager mid-transaction. Only one operation runs per host at a time.
-- **Host key verification is currently disabled.** Pinning host keys is planned and is the most important hardening step.
+- **Host keys are pinned.** The key confirmed at setup is the only one accepted. If it changes (for example after reinstalling the OS), the integration stops connecting and Home Assistant asks you to re-authenticate, showing the new fingerprint to accept. Entries created before v0.3.0 pin the key they see on their first connection after the upgrade and log its fingerprint.
 - `NOPASSWD: ALL` is powerful, and the apt upgrade runs through `env`, so a narrower sudoers rule is not much safer in practice. Protect the account and key accordingly.
 - No passphrase-protected keys and no reauthentication flow yet.
 - macOS and the BSDs are not supported.
@@ -95,7 +97,6 @@ Use an IP or CIDR range, not a hostname. If logins start failing, check `journal
 
 - A native `update` entity
 - A reboot-required sensor
-- Host key pinning
 - More platforms (FreeBSD `pkg`, macOS `softwareupdate`)
 
 ## License
