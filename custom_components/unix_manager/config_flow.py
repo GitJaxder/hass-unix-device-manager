@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResu
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 from homeassistant.core import callback
 
-from .client import CannotConnect, InvalidAuth, UnixClient, UnixError, UnsupportedSystem, load_key
+from .client import CannotConnect, InvalidAuth, UnixClient, UnsupportedSystem, load_key
 from .const import CONF_INTERVAL, CONF_KEY_FILE, DEFAULT_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,7 +19,9 @@ _LOGGER = logging.getLogger(__name__)
 STEP_USER_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
-        vol.Required(CONF_PORT, default=22): int,
+        vol.Required(CONF_PORT, default=22): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=65535)
+        ),
         vol.Required(CONF_USERNAME): str,
         vol.Optional(CONF_PASSWORD): str,
         vol.Optional(CONF_KEY_FILE): str,
@@ -55,7 +57,7 @@ class UnixConfigFlow(ConfigFlow, domain=DOMAIN):
                 try:
                     if key_file:
                         key = await self.hass.async_add_executor_job(load_key, key_file)
-                except (OSError, asyncssh.Error):
+                except (OSError, ValueError, asyncssh.Error):  # key errors are ValueErrors
                     errors["base"] = "invalid_key"
                 else:
                     client = UnixClient(host, port, user_input[CONF_USERNAME], password, key)
@@ -67,7 +69,7 @@ class UnixConfigFlow(ConfigFlow, domain=DOMAIN):
                         errors["base"] = "cannot_connect"
                     except UnsupportedSystem:
                         errors["base"] = "unsupported"
-                    except UnixError:
+                    except Exception:  # noqa: BLE001
                         _LOGGER.exception("Validation failed")
                         errors["base"] = "unknown"
                     else:
